@@ -27,6 +27,11 @@
         button:hover {
             background-color: #e04d2b;
         }
+        #admin-approval {
+            display: block;
+            color: white;
+            font-size: 20px;
+        }
         #game-container {
             display: none;
             margin-top: 20px;
@@ -36,75 +41,58 @@
             height: 500px;
             border: none;
         }
-        #login-container {
-            margin-top: 20px;
-        }
-        input {
-            padding: 10px;
-            font-size: 16px;
-        }
     </style>
 </head>
 <body>
     <h1>Welcome to Wizor's Game Hub</h1>
 
-    <!-- Login Section -->
-    <div id="login-container">
-        <p>Enter your access code:</p>
-        <input type="text" id="access-code" placeholder="Enter code here">
-        <button onclick="validateCode()">Enter</button>
+    <!-- Admin Approval Section -->
+    <div id="admin-approval">
+        <p><strong>Admin Approval:</strong> Enter passcode to unlock this device.</p>
+        <input type="password" id="admin-passcode" placeholder="Enter passcode">
+        <button onclick="grantAccess()">Grant Access</button>
     </div>
 
-    <!-- Game Container -->
+    <!-- Game Container (hidden until access is granted) -->
     <div id="game-container">
         <h2>Welcome to the Game Hub</h2>
         <button onclick="loadGame('https://rando.gg/')">Rando.gg</button>
         <button onclick="loadGame('https://www.freegames.com/')">FreeGames.com</button>
         <button onclick="loadGame('https://www.cbc.ca/kids/games')">CBC Kids Games</button>
-        <p><button onclick="logout()">Logout</button></p>
     </div>
 
     <script>
-        const validCodes = {
-            "ABC123": { used: false, expires: Date.now() + 7 * 24 * 60 * 60 * 1000 }, // Example code (expires in 7 days)
-            "XYZ789": { used: false, expires: Date.now() + 7 * 24 * 60 * 60 * 1000 }  // Another example code
-        };
+        // Admin grants access by entering a passcode
+        function grantAccess() {
+            const passcode = document.getElementById("admin-passcode").value;
+            const correctPasscode = "novosad375!"; // Change this to your passcode
 
-        function validateCode() {
-            const code = document.getElementById("access-code").value.trim();
-            const storedCode = sessionStorage.getItem("access-code");
+            if (passcode === correctPasscode) {
+                // Grant access (show game container and store session data)
+                const expirationTime = new Date().getTime() + (7 * 24 * 60 * 60 * 1000); // 7 days
+                localStorage.setItem("sessionId", "approved");
+                localStorage.setItem("expirationTime", expirationTime);
 
-            if (storedCode) {
-                // If user already logged in, allow access
-                document.getElementById("login-container").style.display = "none";
+                // Hide the admin approval section and show the game container
+                document.getElementById("admin-approval").style.display = "none";
                 document.getElementById("game-container").style.display = "block";
-            } else if (validCodes[code] && !validCodes[code].used) {
-                if (Date.now() > validCodes[code].expires) {
-                    alert("This code has expired. Get a new code.");
-                } else {
-                    sessionStorage.setItem("access-code", code);
-                    validCodes[code].used = true; // Mark code as used
-                    document.getElementById("login-container").style.display = "none";
-                    document.getElementById("game-container").style.display = "block";
-                }
+                alert("Access granted for 7 days!");
             } else {
-                alert("Invalid or already used code!");
+                alert("Incorrect passcode. Try again.");
             }
         }
 
-        function logout() {
-            sessionStorage.removeItem("access-code");
-            location.reload();
-        }
-
+        // Load game in iframe (removes previous game & makes fullscreen)
         function loadGame(url) {
             var gameContainer = document.getElementById("game-container");
 
+            // Remove any existing iframe
             var existingIframe = document.querySelector("iframe");
             if (existingIframe) {
                 existingIframe.remove();
             }
 
+            // Create new iframe
             var iframe = document.createElement("iframe");
             iframe.src = url;
             iframe.style.width = "100vw";
@@ -115,6 +103,7 @@
             iframe.style.zIndex = "9999";
             document.body.appendChild(iframe);
 
+            // Exit fullscreen with Escape key
             document.addEventListener("keydown", function(event) {
                 if (event.key === "Escape") {
                     iframe.remove();
@@ -122,9 +111,19 @@
             });
         }
 
+        // Check if user has access and if session is still valid
         window.onload = function() {
-            if (sessionStorage.getItem("access-code")) {
-                document.getElementById("login-container").style.display = "none";
+            const sessionId = localStorage.getItem("sessionId");
+            const expirationTime = localStorage.getItem("expirationTime");
+            const currentTime = new Date().getTime();
+
+            if (!sessionId || currentTime > expirationTime) {
+                // Session expired or not set
+                document.getElementById("admin-approval").style.display = "block";
+                document.getElementById("game-container").style.display = "none";
+            } else {
+                // Session is valid
+                document.getElementById("admin-approval").style.display = "none";
                 document.getElementById("game-container").style.display = "block";
             }
         };
