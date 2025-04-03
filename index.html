@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wizor's Game Hub</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #1e1e1e;
+            color: white;
+        }
+        h1 {
+            margin-top: 20px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 18px;
+            background-color: #ff5733;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 10px;
+        }
+        button:hover {
+            background-color: #e04d2b;
+        }
+        #game-container {
+            display: none;
+            margin-top: 20px;
+        }
+        iframe {
+            width: 80%;
+            height: 500px;
+            border: none;
+        }
+        #restricted-access, #expired-access {
+            display: none;
+            color: red;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to Wizor's Game Hub</h1>
+
+    <!-- Access Restricted Message -->
+    <div id="restricted-access">
+        <p>Access restricted. You need approval to play on this device.</p>
+        <button onclick="requestAccess()">Request Access</button>
+    </div>
+
+    <!-- Expired Session Message -->
+    <div id="expired-access">
+        <p>Your session has expired. Please request access again.</p>
+        <button onclick="requestAccess()">Request Access</button>
+    </div>
+
+    <!-- Admin Approval Section (Only Admin Knows the Passcode) -->
+    <div id="admin-approval" style="display: none;">
+        <p><strong>Admin Approval:</strong> Enter passcode to unlock this device.</p>
+        <input type="password" id="admin-passcode" placeholder="Enter passcode">
+        <button onclick="grantAccess()">Approve</button>
+    </div>
+
+    <!-- Game Container -->
+    <div id="game-container">
+        <h2>Welcome to the Game Hub</h2>
+        <button onclick="loadGame('https://rando.gg/')">Rando.gg</button>
+        <button onclick="loadGame('https://www.freegames.com/')">FreeGames.com</button>
+        <button onclick="loadGame('https://www.cbc.ca/kids/games')">CBC Kids Games</button>
+    </div>
+
+    <script>
+        // Set a cookie
+        function setCookie(name, value, days) {
+            const d = new Date();
+            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+            let expires = "expires=" + d.toUTCString();
+            document.cookie = name + "=" + value + ";" + expires + ";path=/";
+        }
+
+        // Get a cookie
+        function getCookie(name) {
+            let decodedCookie = decodeURIComponent(document.cookie);
+            let ca = decodedCookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                    return c.substring(name.length, c.length);
+                }
+            }
+            return "";
+        }
+
+        // Delete a cookie
+        function deleteCookie(name) {
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/";
+        }
+
+        // Check if user has access and if session is still valid
+        window.onload = function() {
+            const sessionId = getCookie("sessionId");
+            const expirationTime = getCookie("expirationTime");
+            const currentTime = new Date().getTime();
+
+            if (!sessionId) {
+                document.getElementById("restricted-access").style.display = "block";
+                document.getElementById("admin-approval").style.display = "block"; // Show admin approval
+                document.getElementById("game-container").style.display = "none";
+            } else if (currentTime > expirationTime) {
+                deleteCookie("sessionId");
+                deleteCookie("expirationTime");
+                document.getElementById("expired-access").style.display = "block";
+                document.getElementById("game-container").style.display = "none";
+            } else {
+                document.getElementById("restricted-access").style.display = "none";
+                document.getElementById("admin-approval").style.display = "none";
+                document.getElementById("expired-access").style.display = "none";
+                document.getElementById("game-container").style.display = "block";
+            }
+        };
+
+        // Redirect user to Google Form for access request
+        function requestAccess() {
+            window.location.href = "https://forms.gle/pmvapYsHtuLMx4PE7"; // Replace with your Google Form link
+        }
+
+        // Admin grants access by entering a passcode
+        function grantAccess() {
+            const passcode = document.getElementById("admin-passcode").value;
+            const correctPasscode = "novosad375!"; // Change this to your own secret code
+
+            if (passcode === correctPasscode) {
+                const expirationTime = new Date().getTime() + (7 * 24 * 60 * 60 * 1000); // 7 days
+                setCookie("sessionId", "approved", 7); // Set session cookie for 7 days
+                setCookie("expirationTime", expirationTime, 7);
+
+                // Hide the admin approval section and show the game container
+                document.getElementById("admin-approval").style.display = "none";
+                document.getElementById("restricted-access").style.display = "none";
+                document.getElementById("game-container").style.display = "block";
+
+                alert("Access granted for 7 days!");
+            } else {
+                alert("Incorrect passcode. Try again.");
+            }
+        }
+
+        // Load game in iframe (removes previous game & makes fullscreen)
+        function loadGame(url) {
+            var gameContainer = document.getElementById("game-container");
+
+            // Remove any existing iframe
+            var existingIframe = document.querySelector("iframe");
+            if (existingIframe) {
+                existingIframe.remove();
+            }
+
+            // Create new iframe
+            var iframe = document.createElement("iframe");
+            iframe.src = url;
+            iframe.style.width = "100vw";
+            iframe.style.height = "100vh";
+            iframe.style.position = "fixed";
+            iframe.style.top = "0";
+            iframe.style.left = "0";
+            iframe.style.zIndex = "9999";
+            document.body.appendChild(iframe);
+
+            // Exit fullscreen with Escape key
+            document.addEventListener("keydown", function(event) {
+                if (event.key === "Escape") {
+                    iframe.remove();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
