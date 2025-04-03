@@ -36,38 +36,23 @@
             height: 500px;
             border: none;
         }
-        #restricted-access, #expired-access {
-            display: none;
-            color: red;
-            font-size: 20px;
-        }
-        #token-section {
+        #login-container {
             margin-top: 20px;
         }
         input {
             padding: 10px;
-            width: 250px;
             font-size: 16px;
-            border-radius: 5px;
-            border: none;
         }
     </style>
 </head>
 <body>
     <h1>Welcome to Wizor's Game Hub</h1>
 
-    <!-- Token Login Section -->
-    <div id="token-section">
-        <p>Enter your access token:</p>
-        <input type="text" id="tokenInput" placeholder="Paste your access token here" />
-        <button onclick="validateToken()">Submit</button>
-        <p id="loginStatus"></p>
-    </div>
-
-    <!-- Expired Session Message -->
-    <div id="expired-access">
-        <p>Your session has expired. Please request access again.</p>
-        <button onclick="requestAccess()">Request Access</button>
+    <!-- Login Section -->
+    <div id="login-container">
+        <p>Enter your access code:</p>
+        <input type="text" id="access-code" placeholder="Enter code here">
+        <button onclick="validateCode()">Enter</button>
     </div>
 
     <!-- Game Container -->
@@ -76,30 +61,40 @@
         <button onclick="loadGame('https://rando.gg/')">Rando.gg</button>
         <button onclick="loadGame('https://www.freegames.com/')">FreeGames.com</button>
         <button onclick="loadGame('https://www.cbc.ca/kids/games')">CBC Kids Games</button>
+        <p><button onclick="logout()">Logout</button></p>
     </div>
 
     <script>
-        function validateToken() {
-            const tokenInput = document.getElementById("tokenInput").value.trim();
-            const loginStatus = document.getElementById("loginStatus");
+        const validCodes = {
+            "ABC123": { used: false, expires: Date.now() + 7 * 24 * 60 * 60 * 1000 }, // Example code (expires in 7 days)
+            "XYZ789": { used: false, expires: Date.now() + 7 * 24 * 60 * 60 * 1000 }  // Another example code
+        };
 
-            if (!tokenInput) {
-                loginStatus.textContent = "Please enter your access token!";
-                return;
-            }
+        function validateCode() {
+            const code = document.getElementById("access-code").value.trim();
+            const storedCode = sessionStorage.getItem("access-code");
 
-            const tokenParts = tokenInput.split("_");
-            const expirationDateStr = tokenParts[tokenParts.length - 1];
-            const expirationDate = new Date(expirationDateStr);
-            const currentDate = new Date();
-
-            if (expirationDate > currentDate) {
-                loginStatus.textContent = "✅ Access granted! Enjoy your subscription.";
+            if (storedCode) {
+                // If user already logged in, allow access
+                document.getElementById("login-container").style.display = "none";
                 document.getElementById("game-container").style.display = "block";
-                localStorage.setItem("accessToken", tokenInput);
+            } else if (validCodes[code] && !validCodes[code].used) {
+                if (Date.now() > validCodes[code].expires) {
+                    alert("This code has expired. Get a new code.");
+                } else {
+                    sessionStorage.setItem("access-code", code);
+                    validCodes[code].used = true; // Mark code as used
+                    document.getElementById("login-container").style.display = "none";
+                    document.getElementById("game-container").style.display = "block";
+                }
             } else {
-                loginStatus.textContent = "❌ Token expired. Please renew your subscription.";
+                alert("Invalid or already used code!");
             }
+        }
+
+        function logout() {
+            sessionStorage.removeItem("access-code");
+            location.reload();
         }
 
         function loadGame(url) {
@@ -127,15 +122,10 @@
             });
         }
 
-        function requestAccess() {
-            window.location.href = "https://forms.gle/pmvapYsHtuLMx4PE7"; 
-        }
-
         window.onload = function() {
-            const storedToken = localStorage.getItem("accessToken");
-            if (storedToken) {
-                document.getElementById("tokenInput").value = storedToken;
-                validateToken();
+            if (sessionStorage.getItem("access-code")) {
+                document.getElementById("login-container").style.display = "none";
+                document.getElementById("game-container").style.display = "block";
             }
         };
     </script>
